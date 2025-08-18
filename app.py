@@ -5,12 +5,40 @@ import io
 
 # --- 1. 페이지 초기 설정 ---
 st.set_page_config(
-    page_title="우리 팀 데이터 분석 봇 🚀",
-    page_icon="🚀",
+    page_title="데이버 - LMO팀 데이터 비서",
+    page_icon="📊",
     layout="wide",
 )
-st.title("🚀 우리 팀 데이터 분석 비서 (v3.0 - 속도 최적화)")
-st.write("---")
+
+# --- [수정 1] 제목 변경 및 초록창 스타일 추가 ---
+# 네이버 스타일의 초록색 배경을 가진 검색창 헤더를 만듭니다.
+st.markdown(
+    """
+    <style>
+    .title-container {
+        background-color: #03C75A;
+        padding: 20px 20px 10px 20px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .title-font {
+        font-size: 36px;
+        font-weight: bold;
+    }
+    .subtitle-font {
+        font-size: 16px;
+    }
+    </style>
+    <div class="title-container">
+        <p class="title-font">데이버 (Datavor) 📊</p>
+        <p class="subtitle-font">우리 팀을 위한 데이터 분석 비서</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # --- 2. API Key 및 모델 설정 ---
 try:
@@ -21,7 +49,7 @@ except Exception:
     st.stop()
 
 # --- 3. 데이터 로딩 ---
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1-0gW_EY8VOTF46pQJ0pB85mskdyyq_-1WKf0xlqHPrM/edit?usp=sharing"
+SHEET_URL = "YOUR_GOOGLE_SHEET_SHARE_LINK"
 
 @st.cache_data(ttl=600)
 def load_data(url):
@@ -36,9 +64,10 @@ def load_data(url):
 df = load_data(SHEET_URL)
 
 if df is not None:
-    st.subheader("✅ 데이터베이스 미리보기 (최신 5개)")
-    st.dataframe(df.head())
-    st.write("---")
+    # --- [수정 2] 데이터베이스 미리보기 부분 삭제 ---
+    # st.subheader("✅ 데이터베이스 미리보기 (최신 5개)")
+    # st.dataframe(df.head())
+    # st.write("---")
 
     # --- 4. 사용자 질문 입력 ---
     question = st.text_area("데이터에 대해 궁금한 점을 자연스러운 문장으로 질문해주세요.", height=100, placeholder="예시: 24개의 면화 작물 데이터를 모두 찾아줘")
@@ -47,10 +76,8 @@ if df is not None:
         if not question:
             st.warning("질문을 입력해주세요!")
         else:
-            with st.spinner("🧠 AI가 분석 코드를 생성 중입니다... (속도 UP!)"):
-                # --- 5. [v3.0 핵심!] AI에게 데이터 전체가 아닌 '요약 정보'만 전달 ---
-                
-                # 데이터의 구조(메타데이터)를 텍스트로 생성
+            with st.spinner("🧠 데이버가 생각 중입니다... 잠시만 기다려주세요."):
+                # --- 5. AI에게 데이터 요약 정보 전달 ---
                 buffer = io.StringIO()
                 df.info(buf=buffer)
                 df_info = buffer.getvalue()
@@ -89,10 +116,10 @@ if df is not None:
                     
                     st.subheader("📊 분석 결과")
                     
-                    # --- 6. [v3.0 핵심!] AI가 만든 코드를 받아서 '우리 앱'이 직접 실행 ---
+                    # --- 6. AI가 만든 코드를 받아서 '우리 앱'이 직접 실행 ---
                     exec(generated_code, {'df': df, 'st': st, 'pd': pd})
 
-                    with st.expander("🤖 AI가 생성한 분석 코드 보기 (검증용)"):
+                    with st.expander("🤖 AI가 실행한 분석 코드 보기 (검증용)"):
                         st.code(generated_code, language='python')
                         
                 except Exception as e:
