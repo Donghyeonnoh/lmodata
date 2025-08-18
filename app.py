@@ -84,34 +84,30 @@ if df is not None:
 
                 **[DataFrame 구조 정보]**
                 * **총 데이터 개수:** {total_rows}
-                * **컬럼 정보 및 데이터 타입:**
-                ```
-                {df_info}
-                ```
-
+                
                 **[사용자 질문]**
                 "{question}"
 
                 **[출력 형식 예시]**
                 ## 생각의 과정
-                1.  '작물' 컬럼에서 '면화'와 정확히 일치하는 데이터만 필터링한다.
-                2.  필터링된 데이터의 총 개수(행의 수)를 계산한다.
-                3.  계산된 개수를 '면화 작물의 총 개수는 O개입니다.' 라는 문장으로 Streamlit을 사용해 출력한다.
+                1. 사용자의 질문은 전체 데이터의 개수를 묻고 있다.
+                2. `df`의 전체 길이(행의 수)를 `len()` 함수를 사용해 구한다.
+                3. 결과를 f-string을 사용해 문장으로 만들어 `st.write()`로 출력한다.
 
                 ## 최종 실행 코드
                 ```python
-                cotton_df = df[df['작물'] == '면화']
-                count = len(cotton_df)
-                st.write(f"면화 작물의 총 개수는 {count}개입니다.")
+                total_rows = len(df)
+                st.write(f"총 데이터의 개수는 {total_rows}개입니다.")
                 ```
                 """
+                
+                generated_code = "" # 생성된 코드를 저장할 변수 초기화
                 try:
                     model = genai.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content(prompt)
                     
                     response_text = response.text
                     thought_process = ""
-                    generated_code = ""
 
                     if "## 최종 실행 코드" in response_text:
                         parts = response_text.split("## 최종 실행 코드")
@@ -130,25 +126,26 @@ if df is not None:
                         st.code(generated_code, language='python')
                         
                 except Exception as e:
+                    # [v3.6 핵심!] 오류 발생 시, AI가 생성한 코드도 함께 보여주어 디버깅을 쉽게 함
                     st.error(f"코드를 실행하는 중 오류가 발생했습니다: {e}")
+                    if generated_code:
+                        st.error("AI가 생성한 아래 코드에서 문제가 발생했을 수 있습니다:")
+                        st.code(generated_code, language='python')
 
     st.write("---")
     
-    # --- [복구 완료!] 데이터 검사기 섹션 ---
+    # --- 데이터 검사기 섹션 ---
     st.header("2. 🕵️ 데이터 직접 검사하기 (AI 없음)")
     st.info("AI가 데이터를 잘못 인식하는 것 같다면, 여기서 직접 확인해보세요.")
     try:
-        column_to_inspect = st.selectbox("검사할 컬럼을 선택하세요:", df.columns)
-        if st.button("🔍 컬럼 내용 검사하기"):
-            st.subheader(f"'{column_to_inspect}' 컬럼의 값 종류 및 개수")
-            
-            # AI 없이 Pandas로 직접 값의 개수를 셉니다.
-            value_counts = df[column_to_inspect].value_counts().reset_index()
-            value_counts.columns = [column_to_inspect, '개수']
-            
-            st.dataframe(value_counts)
-            st.success("위 표는 AI를 거치지 않은 100% 정확한 원본 데이터의 통계입니다.")
-            
+        if 'columns' in df:
+            column_to_inspect = st.selectbox("검사할 컬럼을 선택하세요:", df.columns)
+            if st.button("🔍 컬럼 내용 검사하기"):
+                st.subheader(f"'{column_to_inspect}' 컬럼의 값 종류 및 개수")
+                value_counts = df[column_to_inspect].value_counts().reset_index()
+                value_counts.columns = [column_to_inspect, '개수']
+                st.dataframe(value_counts)
+                st.success("위 표는 AI를 거치지 않은 100% 정확한 원본 데이터의 통계입니다.")
     except Exception as e:
         st.error(f"검사 중 오류가 발생했습니다: {e}")
 
