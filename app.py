@@ -65,10 +65,6 @@ if df is not None:
             with st.spinner("🧠 DAVER가 계획을 세우고 분석 중입니다..."):
                 total_rows = len(df)
                 
-                buffer = io.StringIO()
-                df.info(buf=buffer)
-                df_info = buffer.getvalue()
-
                 prompt = f"""
                 당신은 Python Pandas와 Streamlit을 전문적으로 다루는 AI 데이터 분석가입니다.
                 당신의 임무는 사용자의 질문을 분석하고, **먼저 '생각의 과정'을 통해 분석 계획을 세운 뒤**, 그 계획에 따라 최종 코드를 생성하는 것입니다.
@@ -101,9 +97,9 @@ if df is not None:
                 ```
                 """
                 
-                generated_code = "" # 생성된 코드를 저장할 변수 초기화
+                generated_code = ""
                 try:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    model = gen.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content(prompt)
                     
                     response_text = response.text
@@ -126,7 +122,6 @@ if df is not None:
                         st.code(generated_code, language='python')
                         
                 except Exception as e:
-                    # [v3.6 핵심!] 오류 발생 시, AI가 생성한 코드도 함께 보여주어 디버깅을 쉽게 함
                     st.error(f"코드를 실행하는 중 오류가 발생했습니다: {e}")
                     if generated_code:
                         st.error("AI가 생성한 아래 코드에서 문제가 발생했을 수 있습니다:")
@@ -134,18 +129,18 @@ if df is not None:
 
     st.write("---")
     
-    # --- 데이터 검사기 섹션 ---
+    # --- [v3.7 수정!] 데이터 검사기 섹션 ---
     st.header("2. 🕵️ 데이터 직접 검사하기 (AI 없음)")
     st.info("AI가 데이터를 잘못 인식하는 것 같다면, 여기서 직접 확인해보세요.")
     try:
-        if 'columns' in df:
-            column_to_inspect = st.selectbox("검사할 컬럼을 선택하세요:", df.columns)
-            if st.button("🔍 컬럼 내용 검사하기"):
-                st.subheader(f"'{column_to_inspect}' 컬럼의 값 종류 및 개수")
-                value_counts = df[column_to_inspect].value_counts().reset_index()
-                value_counts.columns = [column_to_inspect, '개수']
-                st.dataframe(value_counts)
-                st.success("위 표는 AI를 거치지 않은 100% 정확한 원본 데이터의 통계입니다.")
+        # 불필요하고 잘못된 'if' 문을 제거하여 항상 보이도록 수정
+        column_to_inspect = st.selectbox("검사할 컬럼을 선택하세요:", df.columns)
+        if st.button("🔍 컬럼 내용 검사하기"):
+            st.subheader(f"'{column_to_inspect}' 컬럼의 값 종류 및 개수")
+            value_counts = df[column_to_inspect].value_counts().reset_index()
+            value_counts.columns = [column_to_inspect, '개수']
+            st.dataframe(value_counts)
+            st.success("위 표는 AI를 거치지 않은 100% 정확한 원본 데이터의 통계입니다.")
     except Exception as e:
         st.error(f"검사 중 오류가 발생했습니다: {e}")
 
