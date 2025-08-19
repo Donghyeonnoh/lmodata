@@ -56,18 +56,12 @@ if df_original is not None:
     st.header("1. 🕵️ 데이터 직접 검색하기")
     st.info("아래 드롭다운 메뉴를 사용하여 원하는 데이터를 정확하게 찾아보세요.")
 
-    # --- 4. 데이터 직접 검색 (수동 필터) ---
     try:
-        # 필터링할 컬럼을 사용자가 선택
         filter_column = st.selectbox("필터링할 기준 컬럼을 선택하세요:", df_original.columns)
-        
-        # 선택된 컬럼의 고유한 값들을 가져와서 선택지로 제공
         unique_values = df_original[filter_column].unique()
         selected_value = st.selectbox(f"'{filter_column}' 컬럼에서 어떤 값을 찾을까요?", unique_values)
 
-        # '검색' 버튼을 추가하여 사용자가 원할 때 필터링 실행
         if st.button("🔍 검색 실행", type="primary"):
-            # 선택된 값으로 데이터 필터링 (AI 없음, 100% 정확)
             st.session_state.df_filtered = df_original[df_original[filter_column] == selected_value]
             st.session_state.selected_value = selected_value
             st.session_state.filter_column = filter_column
@@ -75,7 +69,6 @@ if df_original is not None:
     except Exception as e:
         st.error(f"데이터를 검색하는 중 오류가 발생했습니다: {e}")
         
-    # 세션 상태에 필터링된 데이터가 있으면 화면에 표시
     if 'df_filtered' in st.session_state:
         df_filtered = st.session_state.df_filtered
         filter_column = st.session_state.filter_column
@@ -93,19 +86,27 @@ if df_original is not None:
             if st.button("✨ AI에게 요약 요청하기", type="secondary"):
                 with st.spinner("🧠 DAVER가 검색된 데이터를 요약 중입니다..."):
                     try:
-                        # AI에게 요약을 요청하는 프롬프트
+                        # --- [최종 핵심 수정!] AI에게 '계산'을 시키지 않고, '팩트'를 알려준 뒤 '글쓰기'만 요청 ---
+                        
+                        # 1. Python(Pandas)으로 100% 정확한 팩트를 미리 계산
+                        total_count = len(df_filtered)
+                        top_regions = df_filtered['주소'].value_counts().nlargest(3).to_dict()
+                        top_regions_str = ", ".join([f"{region} ({count}건)" for region, count in top_regions.items()])
+
+                        # 2. 계산된 팩트를 AI에게 명확하게 전달
                         prompt = f"""
-                        당신은 주어진 데이터를 분석하고 핵심 내용을 요약하는 데이터 분석 전문가입니다.
-                        아래에 제공되는 표(CSV 형식)는 '{selected_value}'에 대한 데이터입니다.
-                        이 데이터를 보고, 가장 중요한 정보들을 뽑아서 간결한 한글 문장으로 요약해주세요.
+                        당신은 데이터 요약 전문가입니다. 아래에 제공되는 [핵심 정보]를 바탕으로, 자연스러운 한글 문장으로 데이터 요약 보고서를 작성해주세요.
 
-                        **요약에 포함할 내용:**
-                        - 총 몇 건의 데이터가 있는지
-                        - 주로 어떤 지역에서 발견되었는지 (상위 2~3곳)
-                        - 그 외에 발견할 수 있는 특별한 패턴이나 특징이 있다면 간략하게 언급
-
-                        **[분석할 데이터]**
-                        {df_filtered.to_csv(index=False)}
+                        **[핵심 정보]**
+                        - 분석 대상: '{selected_value}'
+                        - 총 데이터 건수: {total_count}건
+                        - 상위 3개 발견 주소: {top_regions_str}
+                        
+                        **[작성 지침]**
+                        - 위의 [핵심 정보]에 있는 숫자와 내용을 **그대로 사용하여** 요약문을 작성하세요.
+                        - 절대로 숫자를 임의로 바꾸거나 없는 말을 만들지 마세요.
+                        - 한두 문단의 간결한 보고서 형식으로 작성해주세요.
+                        - "핵심 정보에 따르면" 과 같은 말은 빼고, 자연스럽게 분석한 것처럼 작성해주세요.
                         """
                         
                         model = genai.GenerativeModel('gemini-1.5-flash')
