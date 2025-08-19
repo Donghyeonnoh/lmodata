@@ -3,14 +3,13 @@ import pandas as pd
 import google.generativeai as genai
 
 # --- 페이지 초기 설정 (가장 먼저 실행되어야 함) ---
-### 변경점 1: layout을 'centered'로 변경하여 모바일 가독성 확보 ###
 st.set_page_config(
     page_title="DAVER",
     page_icon="💻",
-    layout="centered", # wide -> centered
+    layout="centered",
 )
 
-# --- [찐막 핵심 1] 타임스탬프를 읽어오는 새로운 함수 ---
+# --- 타임스탬프 로딩 함수 ---
 @st.cache_data(ttl=60)
 def load_timestamp(url):
     try:
@@ -41,8 +40,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# --- 제목 및 스타일 (비밀번호 통과 후 실행) ---
-### 변경점 2: 모바일 화면(폭 600px 이하)에서 제목 폰트 크기 조정 ###
+# --- 제목 및 스타일 ---
 st.markdown(
     """
     <style>
@@ -60,14 +58,14 @@ st.markdown(
     }
     </style>
     <div class="title-container">
-        <p class="title-font">DAVER 📊</p>
-        <p class="subtitle-font">우리 팀을 위한 데이터 분석 비서</p>
+        <p class="title-font">DAVER ./icon.png</p>
+        <p class="subtitle-font">LMO팀 데이터 분석 비서</p>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# --- API Key 설정 & 데이터 로딩 (기존과 동일) ---
+# --- API Key 설정 & 데이터 로딩 ---
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=api_key)
@@ -92,71 +90,76 @@ df_original = load_data(SHEET_URL)
 
 # --- 데이터가 있을 경우 앱 본문 표시 ---
 if df_original is not None:
-    ### 변경점 3: 3단 필터를 사이드바로 이동 ###
+    # --- 사이드바 필터 ---
     with st.sidebar:
         st.title("🕵️ 데이터 검색 필터")
         st.info("아래 필터로 데이터를 검색하세요.")
-
-        # 필터 1: 권역
         if '권역' in df_original.columns:
             unique_regions = ['--전체--'] + sorted(list(df_original['권역'].unique()))
             selected_region = st.selectbox("권역:", unique_regions, key="region")
         else:
-            st.warning("'권역' 컬럼 없음")
             selected_region = '--전체--'
-
-        # 필터 2: 작물
         if '작물' in df_original.columns:
             unique_crops = ['--전체--'] + sorted(list(df_original['작물'].unique()))
             selected_crop = st.selectbox("작물:", unique_crops, key="crop")
         else:
-            st.warning("'작물' 컬럼 없음")
             selected_crop = '--전체--'
-        
-        # 필터 3: Strip결과
         if 'Strip결과' in df_original.columns:
             unique_results = ['--전체--'] + sorted(list(df_original['Strip결과'].unique()))
             selected_result = st.selectbox("Strip결과:", unique_results, key="result")
         else:
-            st.warning("'Strip결과' 컬럼 없음")
             selected_result = '--전체--'
-        
         st.markdown("---")
         last_updated = load_timestamp(SHEET_URL)
         st.success(f"**데이터 상태**\n\n{last_updated}")
 
-
-    # --- 메인 화면 구성 ---
+    # --- 데이터 필터링 로직 ---
     df_filtered = df_original.copy()
     filter_summary = []
-
-    if selected_region != '--전체--':
+    if selected_region != '--전체--' and '권역' in df_filtered.columns:
         df_filtered = df_filtered[df_filtered['권역'] == selected_region]
         filter_summary.append(f"권역='{selected_region}'")
-        
-    if selected_crop != '--전체--':
+    if selected_crop != '--전체--' and '작물' in df_filtered.columns:
         df_filtered = df_filtered[df_filtered['작물'] == selected_crop]
         filter_summary.append(f"작물='{selected_crop}'")
-
-    if selected_result != '--전체--':
+    if selected_result != '--전체--' and 'Strip결과' in df_filtered.columns:
         df_filtered = df_filtered[df_filtered['Strip결과'] == selected_result]
         filter_summary.append(f"Strip결과='{selected_result}'")
-    
+
+    # --- 메인 화면 ---
     if filter_summary:
         st.subheader(f"🔍 검색 결과 ({' & '.join(filter_summary)})")
     else:
         st.subheader("🔍 전체 데이터")
-
     st.dataframe(df_filtered)
     st.success(f"총 {len(df_filtered)}건의 데이터가 검색되었습니다.")
-    
+
     # --- AI 요약 기능 ---
     if not df_filtered.empty:
         st.write("---")
         st.header("🤖 위 검색 결과 한 줄 요약 (AI)")
-        
         if st.button("✨ AI에게 요약 요청하기", type="primary"):
-            # (AI 요약 기능 코드는 기존과 동일하여 생략)
-            pass
+            ### ★★★ 여기를 다시 원래 코드로 복구했어요! ★★★ ###
+            with st.spinner("🧠 DAVER가 검색된 데이터를 요약 중입니다..."):
+                try:
+                    total_count = len(df_filtered)
+                    top_regions = df_filtered['주소'].value_counts().nlargest(3).to_dict() if '주소' in df_filtered.columns else {}
+                    top_regions_str = ", ".join([f"{region} ({count}건)" for region, count in top_regions.items()])
+                    prompt = f"""
+                    당신은 데이터 요약 전문가입니다. 아래에 제공되는 [핵심 정보]를 바탕으로, 자연스러운 한글 문장으로 데이터 요약 보고서를 작성해주세요.
+                    [핵심 정보]
+                    - 분석 조건: {' & '.join(filter_summary) if filter_summary else "전체 데이터"}
+                    - 총 데이터 건수: {total_count}건
+                    - 상위 3개 발견 주소: {top_regions_str if top_regions_str else "정보 없음"}
+                    [작성 지침]
+                    - 위의 [핵심 정보]에 있는 숫자와 내용을 **그대로 사용하여** 요약문을 작성하세요.
+                    - "핵심 정보에 따르면" 과 같은 말은 빼고, 자연스럽게 분석한 것처럼 작성해주세요.
+                    """
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content(prompt)
+                    st.subheader("📝 AI 요약 결과")
+                    st.success(response.text)
+                except Exception as e:
+                    st.error(f"AI 요약 중 오류가 발생했습니다: {e}")
 else:
     st.warning("데이터를 불러올 수 없습니다.")
