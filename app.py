@@ -2,7 +2,34 @@ import streamlit as st
 import pandas as pd
 import google.generativeai as genai
 
-# --- 1. 페이지 초기 설정 ---
+# --- [최종 핵심!] 비밀번호 확인 기능 ---
+def check_password():
+    """비밀번호가 맞으면 True, 틀리면 False를 반환하는 함수"""
+    if "password_correct" not in st.session_state:
+        st.session_state.password_correct = False
+
+    if st.session_state.password_correct:
+        return True
+
+    # 비밀번호 입력 폼
+    with st.form("password_form"):
+        password = st.text_input("비밀번호를 입력하세요", type="password")
+        submitted = st.form_submit_button("확인")
+
+        if submitted:
+            # secrets.toml에 저장된 비밀번호와 비교
+            if password == st.secrets["password"]:
+                st.session_state.password_correct = True
+                st.rerun() # 비밀번호가 맞으면 페이지 새로고침
+            else:
+                st.error("비밀번호가 일치하지 않습니다.")
+    return False
+
+# 비밀번호가 맞지 않으면, 아래의 앱 본체는 실행되지 않음
+if not check_password():
+    st.stop()
+
+# --- 1. 페이지 초기 설정 (비밀번호 통과 후 실행) ---
 st.set_page_config(
     page_title="DAVER - 우리 팀 데이터 비서",
     page_icon="📊",
@@ -56,14 +83,12 @@ if df_original is not None:
     st.header("1. 🕵️ 데이터 직접 검색하기 (3중 필터링)")
     st.info("세 가지 필터 조건을 조합하여 원하는 데이터를 정확하게 찾아보세요.")
 
-    # --- 4. [찐 최종 핵심!] 3중 필터링 인터페이스 ---
+    # (이하 3중 필터링 및 AI 요약 기능 코드는 이전과 동일)
     try:
-        cols = st.columns(3) # 3개의 컬럼으로 화면을 나눔
+        cols = st.columns(3)
 
-        # 필터 조건 1: 권역
         with cols[0]:
             st.subheader("필터 1: 권역")
-            # '권역' 컬럼이 있는지 확인하고 필터 생성
             if '권역' in df_original.columns:
                 unique_regions = ['--전체--'] + sorted(list(df_original['권역'].unique()))
                 selected_region = st.selectbox("권역을 선택하세요:", unique_regions, key="region")
@@ -71,7 +96,6 @@ if df_original is not None:
                 st.warning("'권역' 컬럼을 찾을 수 없습니다. 구글 시트를 확인해주세요.")
                 selected_region = '--전체--'
 
-        # 필터 조건 2: 작물
         with cols[1]:
             st.subheader("필터 2: 작물")
             if '작물' in df_original.columns:
@@ -81,7 +105,6 @@ if df_original is not None:
                 st.warning("'작물' 컬럼을 찾을 수 없습니다.")
                 selected_crop = '--전체--'
         
-        # 필터 조건 3: Strip결과
         with cols[2]:
             st.subheader("필터 3: Strip결과")
             if 'Strip결과' in df_original.columns:
@@ -91,7 +114,6 @@ if df_original is not None:
                 st.warning("'Strip결과' 컬럼을 찾을 수 없습니다.")
                 selected_result = '--전체--'
 
-        # 필터링 로직
         df_filtered = df_original.copy()
         filter_summary = []
 
@@ -107,7 +129,6 @@ if df_original is not None:
             df_filtered = df_filtered[df_filtered['Strip결과'] == selected_result]
             filter_summary.append(f"Strip결과='{selected_result}'")
         
-        # 검색 결과 표시
         st.write("---")
         if filter_summary:
             st.subheader(f"🔍 검색 결과 ({' & '.join(filter_summary)})")
@@ -116,8 +137,7 @@ if df_original is not None:
 
         st.dataframe(df_filtered)
         st.success(f"총 {len(df_filtered)}건의 데이터가 검색되었습니다.")
-
-        # --- 5. AI 요약 기능 ---
+        
         if not df_filtered.empty:
             st.write("---")
             st.header("2. 🤖 위 검색 결과 한 줄 요약하기 (AI)")
