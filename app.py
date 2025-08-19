@@ -2,12 +2,16 @@ import streamlit as st
 import pandas as pd
 import google.generativeai as genai
 
-# --- 페이지 초기 설정 (가장 먼저 실행되어야 함) ---
-st.set_page_config(
-    page_title="DAVER",
-    page_icon="💻",
-    layout="centered",
-)
+# --- 아이콘 변경 ---
+st.markdown("""
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#03C75A"/>
+<link rel="apple-touch-icon" href="/static/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DAVER">
+""", unsafe_allow_html=True)
+
 
 # --- 타임스탬프 로딩 함수 ---
 @st.cache_data(ttl=60)
