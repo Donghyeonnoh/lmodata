@@ -2,25 +2,35 @@ import streamlit as st
 import pandas as pd
 import google.generativeai as genai
 
-# --- [최종 핵심!] 비밀번호 확인 기능 ---
+# --- [찐막 핵심 1] 타임스탬프를 읽어오는 새로운 함수 ---
+@st.cache_data(ttl=60) # 타임스탬프는 1분마다 새로고침
+def load_timestamp(url):
+    try:
+        # MetaData 시트를 읽기 위한 URL 생성
+        # [사용자 수정 필요!] 아래 YOUR_METADATA_SHEET_GID 부분을 실제 GID 숫자로 바꿔주세요.
+        gid = "YOUR_METADATA_SHEET_GID" 
+        csv_url = url.replace("/edit?usp=sharing", f"/export?format=csv&gid={gid}")
+        timestamp_df = pd.read_csv(csv_url, header=None)
+        return timestamp_df.iloc[0, 0] # 첫 번째 행, 첫 번째 열의 값을 반환
+    except Exception:
+        return "업데이트 시간 확인 불가"
+
+# --- 비밀번호 확인 기능 ---
 def check_password():
-    """비밀번호가 맞으면 True, 틀리면 False를 반환하는 함수"""
     if "password_correct" not in st.session_state:
         st.session_state.password_correct = False
 
     if st.session_state.password_correct:
         return True
 
-    # 비밀번호 입력 폼
     with st.form("password_form"):
         password = st.text_input("비밀번호를 입력하세요", type="password")
         submitted = st.form_submit_button("확인")
 
         if submitted:
-            # secrets.toml에 저장된 비밀번호와 비교
             if password == st.secrets["password"]:
                 st.session_state.password_correct = True
-                st.rerun() # 비밀번호가 맞으면 페이지 새로고침
+                st.rerun()
             else:
                 st.error("비밀번호가 일치하지 않습니다.")
     return False
@@ -80,10 +90,14 @@ def load_data(url):
 df_original = load_data(SHEET_URL)
 
 if df_original is not None:
+    # --- [찐막 핵심 2] 타임스탬프 화면에 표시하기 ---
+    last_updated = load_timestamp(SHEET_URL)
+    st.info(f"**데이터베이스 상태:** {last_updated}")
+
     st.header("1. 🕵️ 데이터 직접 검색하기 (3중 필터링)")
     st.info("세 가지 필터 조건을 조합하여 원하는 데이터를 정확하게 찾아보세요.")
 
-    # (이하 3중 필터링 및 AI 요약 기능 코드는 이전과 동일)
+    # --- 4. 3중 필터링 인터페이스 ---
     try:
         cols = st.columns(3)
 
@@ -138,6 +152,7 @@ if df_original is not None:
         st.dataframe(df_filtered)
         st.success(f"총 {len(df_filtered)}건의 데이터가 검색되었습니다.")
         
+        # --- 5. AI 요약 기능 ---
         if not df_filtered.empty:
             st.write("---")
             st.header("2. 🤖 위 검색 결과 한 줄 요약하기 (AI)")
