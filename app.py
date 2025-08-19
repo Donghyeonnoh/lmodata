@@ -53,44 +53,64 @@ def load_data(url):
 df_original = load_data(SHEET_URL)
 
 if df_original is not None:
-    st.header("1. 🕵️ 데이터 직접 검색하기 (다중 필터링)")
-    st.info("여러 필터 조건을 적용하여 원하는 데이터를 정확하게 찾아보세요.")
+    st.header("1. 🕵️ 데이터 직접 검색하기 (3중 필터링)")
+    st.info("세 가지 필터 조건을 조합하여 원하는 데이터를 정확하게 찾아보세요.")
 
-    # --- 4. [찐 최종 핵심!] 다중 필터링 인터페이스 ---
+    # --- 4. [찐 최종 핵심!] 3중 필터링 인터페이스 ---
     try:
-        cols = st.columns(2) # 2개의 컬럼으로 화면을 나눔
+        cols = st.columns(3) # 3개의 컬럼으로 화면을 나눔
 
-        # 필터 조건 1
+        # 필터 조건 1: 권역
         with cols[0]:
-            st.subheader("필터 조건 1")
-            filter_col1 = st.selectbox("기준 컬럼 1:", df_original.columns, key="col1")
-            unique_values1 = ['--전체--'] + list(df_original[filter_col1].unique())
-            selected_val1 = st.selectbox(f"'{filter_col1}'에서 찾을 값:", unique_values1, key="val1")
+            st.subheader("필터 1: 권역")
+            # '권역' 컬럼이 있는지 확인하고 필터 생성
+            if '권역' in df_original.columns:
+                unique_regions = ['--전체--'] + sorted(list(df_original['권역'].unique()))
+                selected_region = st.selectbox("권역을 선택하세요:", unique_regions, key="region")
+            else:
+                st.warning("'권역' 컬럼을 찾을 수 없습니다. 구글 시트를 확인해주세요.")
+                selected_region = '--전체--'
 
-        # 필터 조건 2
+        # 필터 조건 2: 작물
         with cols[1]:
-            st.subheader("필터 조건 2")
-            filter_col2 = st.selectbox("기준 컬럼 2:", df_original.columns, index=1, key="col2") # 기본으로 두번째 컬럼 선택
-            unique_values2 = ['--전체--'] + list(df_original[filter_col2].unique())
-            selected_val2 = st.selectbox(f"'{filter_col2}'에서 찾을 값:", unique_values2, key="val2")
+            st.subheader("필터 2: 작물")
+            if '작물' in df_original.columns:
+                unique_crops = ['--전체--'] + sorted(list(df_original['작물'].unique()))
+                selected_crop = st.selectbox("작물을 선택하세요:", unique_crops, key="crop")
+            else:
+                st.warning("'작물' 컬럼을 찾을 수 없습니다.")
+                selected_crop = '--전체--'
+        
+        # 필터 조건 3: Strip결과
+        with cols[2]:
+            st.subheader("필터 3: Strip결과")
+            if 'Strip결과' in df_original.columns:
+                unique_results = ['--전체--'] + sorted(list(df_original['Strip결과'].unique()))
+                selected_result = st.selectbox("Strip결과를 선택하세요:", unique_results, key="result")
+            else:
+                st.warning("'Strip결과' 컬럼을 찾을 수 없습니다.")
+                selected_result = '--전체--'
 
         # 필터링 로직
-        df_filtered = df_original.copy() # 원본 데이터 복사로 시작
-        
-        filter_summary = [] # 적용된 필터 요약을 위한 리스트
+        df_filtered = df_original.copy()
+        filter_summary = []
 
-        if selected_val1 != '--전체--':
-            df_filtered = df_filtered[df_filtered[filter_col1] == selected_val1]
-            filter_summary.append(f"'{filter_col1}'이(가) '{selected_val1}'인 조건")
+        if selected_region != '--전체--' and '권역' in df_filtered.columns:
+            df_filtered = df_filtered[df_filtered['권역'] == selected_region]
+            filter_summary.append(f"권역='{selected_region}'")
             
-        if selected_val2 != '--전체--':
-            df_filtered = df_filtered[df_filtered[filter_col2] == selected_val2]
-            filter_summary.append(f"'{filter_col2}'이(가) '{selected_val2}'인 조건")
+        if selected_crop != '--전체--' and '작물' in df_filtered.columns:
+            df_filtered = df_filtered[df_filtered['작물'] == selected_crop]
+            filter_summary.append(f"작물='{selected_crop}'")
+
+        if selected_result != '--전체--' and 'Strip결과' in df_filtered.columns:
+            df_filtered = df_filtered[df_filtered['Strip결과'] == selected_result]
+            filter_summary.append(f"Strip결과='{selected_result}'")
         
         # 검색 결과 표시
         st.write("---")
         if filter_summary:
-            st.subheader(f"🔍 검색 결과 ({' 그리고 '.join(filter_summary)})")
+            st.subheader(f"🔍 검색 결과 ({' & '.join(filter_summary)})")
         else:
             st.subheader("🔍 전체 데이터")
 
@@ -113,7 +133,7 @@ if df_original is not None:
                         당신은 데이터 요약 전문가입니다. 아래에 제공되는 [핵심 정보]를 바탕으로, 자연스러운 한글 문장으로 데이터 요약 보고서를 작성해주세요.
 
                         [핵심 정보]
-                        - 분석 조건: {' 그리고 '.join(filter_summary) if filter_summary else "전체 데이터"}
+                        - 분석 조건: {' & '.join(filter_summary) if filter_summary else "전체 데이터"}
                         - 총 데이터 건수: {total_count}건
                         - 상위 3개 발견 주소: {top_regions_str if top_regions_str else "정보 없음"}
                         
