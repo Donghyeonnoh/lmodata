@@ -42,7 +42,7 @@ if not check_password():
 # --- 1. 페이지 초기 설정 (비밀번호 통과 후 실행) ---
 st.set_page_config(
     page_title="DAVER",
-    page_icon="icon.png", # <--- ★★★ 여기를 수정했어요! ★★★
+    page_icon="./icon.png", # <--- ★★★ 여기를 수정했어요! ★★★
     layout="wide",
 )
 
