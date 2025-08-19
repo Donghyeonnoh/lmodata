@@ -8,7 +8,7 @@ def load_timestamp(url):
     try:
         # MetaData 시트를 읽기 위한 URL 생성
         # [사용자 수정 필요!] 아래 YOUR_METADATA_SHEET_GID 부분을 실제 GID 숫자로 바꿔주세요.
-        gid = "YOUR_METADATA_SHEET_GID" 
+        gid = "        gid = "1373493684" 
         csv_url = url.replace("/edit?usp=sharing", f"/export?format=csv&gid={gid}")
         timestamp_df = pd.read_csv(csv_url, header=None)
         return timestamp_df.iloc[0, 0] # 첫 번째 행, 첫 번째 열의 값을 반환
