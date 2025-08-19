@@ -55,30 +55,31 @@ def load_data(url):
 def get_data_summary(df):
     """데이터 요약 정보를 생성하는 함수"""
     summary = {
-        "총_행수": len(df),
-        "총_컬럼수": len(df.columns),
+        "총_행수": int(len(df)),
+        "총_컬럼수": int(len(df.columns)),
         "컬럼정보": {}
     }
     
     for col in df.columns:
         col_info = {
             "데이터타입": str(df[col].dtype),
-            "null값개수": df[col].isnull().sum(),
-            "고유값개수": df[col].nunique()
+            "null값개수": int(df[col].isnull().sum()),
+            "고유값개수": int(df[col].nunique())
         }
         
         # 숫자형 컬럼의 경우 통계 정보 추가
         if df[col].dtype in ['int64', 'float64']:
             col_info.update({
-                "최솟값": df[col].min(),
-                "최댓값": df[col].max(),
-                "평균값": round(df[col].mean(), 2),
-                "중앙값": df[col].median()
+                "최솟값": float(df[col].min()) if pd.notna(df[col].min()) else None,
+                "최댓값": float(df[col].max()) if pd.notna(df[col].max()) else None,
+                "평균값": round(float(df[col].mean()), 2) if pd.notna(df[col].mean()) else None,
+                "중앙값": float(df[col].median()) if pd.notna(df[col].median()) else None
             })
         # 문자형 컬럼의 경우 상위 값들 추가
         else:
-            top_values = df[col].value_counts().head(3).to_dict()
-            col_info["상위값들"] = top_values
+            top_values = df[col].value_counts().head(3)
+            # int64 인덱스를 일반 Python int로 변환
+            col_info["상위값들"] = {str(k): int(v) for k, v in top_values.items()}
             
         summary["컬럼정보"][col] = col_info
     
@@ -101,7 +102,7 @@ def create_enhanced_prompt(question, df_filtered, data_summary):
 총 컬럼수: {data_summary['총_컬럼수']}개
 
 **[각 컬럼별 상세 정보]**
-{json.dumps(data_summary['컬럼정보'], ensure_ascii=False, indent=2)}
+{self._format_data_summary_for_prompt(data_summary)}
 
 **[실제 데이터 샘플]**
 ```
@@ -163,7 +164,16 @@ if df_original is not None:
         # 검색된 데이터의 요약 정보 표시
         with st.expander("📊 검색된 데이터 요약 정보"):
             data_summary = get_data_summary(df_filtered)
-            st.json(data_summary)
+            try:
+                st.json(data_summary)
+            except Exception as e:
+                st.write("📊 검색된 데이터 정보:")
+                st.write(f"- 총 행수: {len(df_filtered)}개")
+                st.write(f"- 컬럼: {', '.join(df_filtered.columns)}")
+                if len(df_filtered) > 0:
+                    st.write("- 데이터 타입:")
+                    for col in df_filtered.columns:
+                        st.write(f"  • {col}: {df_filtered[col].dtype}")
     else:
         st.warning("검색 결과가 없습니다.")
     
@@ -240,11 +250,18 @@ if df_original is not None:
                             st.code(generated_code, language='python')
                             
                             st.subheader("📋 사용된 데이터 정보")
-                            st.json({
-                                "데이터_행수": len(df_filtered),
-                                "데이터_컬럼": list(df_filtered.columns),
-                                "필터_조건": f"{filter_column} = {selected_value}"
-                            })
+                            try:
+                                st.json({
+                                    "데이터_행수": int(len(df_filtered)),
+                                    "데이터_컬럼": list(df_filtered.columns),
+                                    "필터_조건": f"{filter_column} = {selected_value}"
+                                })
+                            except:
+                                st.write({
+                                    "데이터_행수": len(df_filtered),
+                                    "데이터_컬럼": list(df_filtered.columns),
+                                    "필터_조건": f"{filter_column} = {selected_value}"
+                                })
                     
                     except Exception as e:
                         st.error(f"❌ 분석 중 오류가 발생했습니다: {str(e)}")
