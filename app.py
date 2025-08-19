@@ -58,7 +58,7 @@ st.markdown(
     }
     </style>
     <div class="title-container">
-        <p class="title-font">DAVER ./icon.png</p>
+        <p class="title-font">DAVER 💻</p>
         <p class="subtitle-font">LMO팀 데이터 분석 비서</p>
     </div>
     """,
