@@ -6,7 +6,7 @@ import google.generativeai as genai
 st.markdown("""
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#03C75A"/>
-<link rel="apple-touch-icon" href="/static/icon-180.png">
+<link rel="apple-touch-icon" href="/static/icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DAVER">
