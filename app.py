@@ -1,16 +1,22 @@
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
+from PIL import Image # 아이콘 이미지를 사용하기 위해 PIL 라이브러리를 추가해야 해!
 
-# --- 아이콘 변경 ---
-st.markdown("""
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#03C75A"/>
-<link rel="apple-touch-icon" href="/static/icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="DAVER">
-""", unsafe_allow_html=True)
+# --- 페이지 설정: 아이콘 및 제목 (가장 먼저 실행되어야 합니다) ---
+# 이 부분이 스트림릿 앱의 아이콘과 제목을 설정하는 가장 확실하고 올바른 방법이야.
+try:
+    # app.py와 같은 폴더에 있는 icon.png 파일을 찾습니다.
+    icon_image = Image.open("icon.png")
+except FileNotFoundError:
+    # 만약 icon.png 파일을 찾지 못하면, 기본 이모지로 설정됩니다.
+    icon_image = "📊" 
+
+st.set_page_config(
+    page_title="DAVER 데이터 분석 비서", # 웹 브라우저 탭에 표시될 이름
+    page_icon=icon_image,           # 홈 화면에 표시될 아이콘 (파비콘)
+    layout="wide"                   # 페이지 레이아웃을 넓게 사용
+)
 
 
 # --- 타임스탬프 로딩 함수 ---
@@ -143,7 +149,6 @@ if df_original is not None:
         st.write("---")
         st.header("🤖 위 검색 결과 한 줄 요약 (AI)")
         if st.button("✨ AI에게 요약 요청하기", type="primary"):
-            ### ★★★ 여기를 다시 원래 코드로 복구했어요! ★★★ ###
             with st.spinner("🧠 DAVER가 검색된 데이터를 요약 중입니다..."):
                 try:
                     total_count = len(df_filtered)
